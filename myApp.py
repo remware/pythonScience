@@ -1,9 +1,12 @@
 import wx
+import os
+import numpy as np
+from scipy import special, optimize
+import matplotlib.pyplot as plt
 
 class MainWindow(wx.Frame):
     def __init__(self, parent, title):
-        wx.Frame.__init__(self, parent, title=title, size=(200,100))
-        self.control = wx.TextCtrl(self, style=wx.TE_MULTILINE)
+        wx.Frame.__init__(self, parent, title=title, size=(200,100))        
         self.CreateStatusBar() # A Statusbar in the bottom of the window
 
         # Setting up the menu.
@@ -20,20 +23,34 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnExit, menuExit)     
         self.Bind(wx.EVT_MENU, self.OnOpen, menuOpen)
 
-        self.sizer2 = wx.BoxSizer(wx.HORIZONTAL)
+        self.sizerHbar = wx.BoxSizer(wx.HORIZONTAL)
         self.buttons = []
-        self.buttons.append(wx.Button(self, -1, "Draw Bessel"))
-        self.sizer2.Add(self.buttons[0], 1, wx.EXPAND)
+        bb = wx.Button(self, -1, "Draw Bessel")
+        bb.Bind(wx.EVT_BUTTON, self.DisplayBessel)
+        self.buttons.append(bb)
+        self.sizerHbar.Add(self.buttons[0], 1, wx.EXPAND)
+
+        # image import
+        self.MaxImageSize = 460
+        self.Image = wx.StaticBitmap(self, bitmap=wx.Bitmap(self.MaxImageSize, self.MaxImageSize))
+        self.ImageFile = 'plot.png'
+
+        # calculate bessel
+        self.CalculateBessel(3, self.ImageFile)
 
         # Use some sizers to see layout options
-        self.sizer = wx.BoxSizer(wx.VERTICAL)
-        self.sizer.Add(self.control, 1, wx.EXPAND)
-        self.sizer.Add(self.sizer2, 0, wx.EXPAND)
+        box = wx.BoxSizer(wx.VERTICAL)
+        box.Add(bb, 0, wx.CENTER | wx.ALL,10)
+
+        # adding stretchable space before and after centers the image.
+        box.Add((1,1),1)
+        box.Add(self.Image, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL | wx.ADJUST_MINSIZE, 10)
+        box.Add((1,1),1)
+        box.Add(self.sizerHbar, 0, wx.EXPAND)
 
         #Layout sizers
-        self.SetSizer(self.sizer)
-        self.SetAutoLayout(True)
-        self.sizer.Fit(self)
+        self.SetSizerAndFit(box)        
+
         self.Show()
 
         # Creating the menubar.
@@ -54,14 +71,45 @@ class MainWindow(wx.Frame):
     def OnOpen(self,e):
         """ Open a file"""
         self.dirname = ''
-        dlg = wx.FileDialog(self, "Choose a file", self.dirname, "", "*.*", wx.FD_OPEN)
+        dlg = wx.FileDialog(self, "Choose a file", self.dirname, "", "*.png", wx.FD_OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             self.filename = dlg.GetFilename()
             self.dirname = dlg.GetDirectory()
             f = open(os.path.join(self.dirname, self.filename), 'r')
-            self.control.SetValue(f.read())
+            self.ImageFile = os.path.join(self.dirname, self.filename)
             f.close()
+            self.DisplayBessel()
         dlg.Destroy()
+
+    def DisplayBessel(self, event=None):
+        #load Image
+        Img = wx.Image(self.ImageFile, wx.BITMAP_TYPE_PNG)
+        # scale the image, preserving the aspect ratio
+        W = Img.GetWidth()
+        H = Img.GetHeight()
+        if W > H:
+            NewW = self.MaxImageSize
+            NewH = self.MaxImageSize * H / W
+        else:
+            NewH = self.MaxImageSize
+            NewW = self.MaxImageSize * W / H
+        Img = Img.Scale(NewW,NewH)
+ 
+        # convert it to a wx.Bitmap, and put it on the wx.StaticBitmap
+        self.Image.SetBitmap(wx.Bitmap(Img))
+        self.Refresh()
+
+    def CalculateBessel(self, order, output):
+        # Compute maximum
+        f = lambda x: -special.jv(order, x)
+        sol = optimize.minimize(f, 1.0)
+
+        # Plot
+        x = np.linspace(0, 10, 5000)
+        plt.plot(x, special.jv(order, x), '-', sol.x, -sol.fun, 'o')
+
+        # Produce output
+        plt.savefig(output, dpi=96)
 
 app = wx.App(False)
 frame = MainWindow(None, "Sample editor")
