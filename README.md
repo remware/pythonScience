@@ -9,6 +9,5 @@
 
 * Install numpy scipy matplotlib ipython jupyter pandas sympy nose
 * test env with  ipython --pylab
+* wxmplot is optional if you want to use ready made components
 * Run python myApp.py
-
-

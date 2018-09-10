@@ -27,7 +27,7 @@ class MainWindow(wx.Frame):
         self.buttons = []
         bb = wx.Button(self, -1, "Draw Bessel")
         bb.Bind(wx.EVT_BUTTON, self.DisplayBessel)
-        self.buttons.append(bb)
+        self.buttons.append(bb)        
         self.sizerHbar.Add(self.buttons[0], 1, wx.EXPAND)
 
         # image import
@@ -37,6 +37,13 @@ class MainWindow(wx.Frame):
 
         # calculate bessel
         self.CalculateBessel(3, self.ImageFile)
+
+        # calculate intensity
+        self.CalculateIntensity('intensity.png')
+        # calculate contour
+        self.CalculateContour('contour.png')
+        # calculate gradiant
+        self.CalculateGradient('gradient.png')
 
         # Use some sizers to see layout options
         box = wx.BoxSizer(wx.VERTICAL)
@@ -111,7 +118,59 @@ class MainWindow(wx.Frame):
         # Produce output
         plt.savefig(output, dpi=96)
 
+    def CalculateIntensity(self, output):
+        y, x = np.mgrid[-5:5:101j, -4:6:101j]
+        dat = np.sin(x*x/3.0 + y*y)/(1 + (x+y)*(x+y))
+
+        x0 = x[0,:]
+        y0 = y[:,0]
+        plt.plot(y, x, dat)
+
+         # Produce output
+        plt.savefig(output, dpi=96)
+
+    def CalculateContour(self, output):
+        y, x = np.mgrid[-5:5:101j, -4:6:101j]
+        dat = np.sin(x*x/3.0 + y*y)/(1 + (x+y)*(x+y))
+
+        x0 = x[0,:]
+        y0 = y[:,0]
+
+        plt.plot( x, y, dat)
+
+         # Produce output
+        plt.savefig(output, dpi=96)
+   
+    def CalculateGradient(self, output):
+        def gauss2d(x, y, x0, y0, sx, sy):
+            return np.outer( np.exp( -(((y-y0)/float(sy))**2)/2), np.exp( -(((x-x0)/float(sx))**2)/2) )
+        
+        ny = 350
+        nx = 350
+        x = np.arange(nx)
+        y = np.arange(ny)
+        ox =  x / 100.0
+        oy = -1 + y / 200.0
+        red  = 0.02 * np.random.random(size=nx*ny).reshape(ny, nx)
+        red =  red + (6.0*gauss2d(x, y, 90,   76,  5,  6) +
+                    3.0*gauss2d(x, y, 165, 190,  70,  33) +
+                    2.0*gauss2d(x, y, 180, 100,  12,  6))
+        green  = 0.3 * np.random.random(size=nx*ny).reshape(ny, nx)
+        green = green  + (5.0*gauss2d(x, y, 173,  98,  4,  9) +
+                        3.2*gauss2d(x, y, 270, 230, 78, 63))
+
+        blue = 0.1 * np.random.random(size=nx*ny).reshape(ny, nx)
+        blue = blue + (2.9*gauss2d(x, y, 240, 265,  78,  23) +
+                    3.5*gauss2d(x, y, 185,  95,  22, 11) +
+                    7.0*gauss2d(x, y, 220,  310,  40,  133))
+
+        dat = np.array([red, green, blue]).swapaxes(2, 0)
+
+        plt.plot(  y, x, blue)
+
+         # Produce output
+        plt.savefig(output, dpi=96)
+
 app = wx.App(False)
 frame = MainWindow(None, "Sample editor")
 app.MainLoop()
-
