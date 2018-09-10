@@ -3,6 +3,7 @@ import os
 import numpy as np
 from scipy import special, optimize
 import matplotlib.pyplot as plt
+from wxmplot import ImagePanel
 
 class MainWindow(wx.Frame):
     def __init__(self, parent, title):
@@ -23,13 +24,14 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnExit, menuExit)     
         self.Bind(wx.EVT_MENU, self.OnOpen, menuOpen)
 
+        # operational buttons
         self.sizerHbar = wx.BoxSizer(wx.HORIZONTAL)
         self.buttons = []
         bb = wx.Button(self, -1, "Draw Bessel")
         bb.Bind(wx.EVT_BUTTON, self.DisplayBessel)
         self.buttons.append(bb)        
         self.sizerHbar.Add(self.buttons[0], 1, wx.EXPAND)
-
+        
         # image import
         self.MaxImageSize = 460
         self.Image = wx.StaticBitmap(self, bitmap=wx.Bitmap(self.MaxImageSize, self.MaxImageSize))
@@ -41,9 +43,7 @@ class MainWindow(wx.Frame):
         # calculate intensity
         self.CalculateIntensity('intensity.png')
         # calculate contour
-        self.CalculateContour('contour.png')
-        # calculate gradiant
-        self.CalculateGradient('gradient.png')
+        self.CalculateContour('contour.png')       
 
         # Use some sizers to see layout options
         box = wx.BoxSizer(wx.VERTICAL)
@@ -55,7 +55,12 @@ class MainWindow(wx.Frame):
         box.Add((1,1),1)
         box.Add(self.sizerHbar, 0, wx.EXPAND)
 
-        #Layout sizers
+        # calculate gradient
+        self.panel = ImagePanel(self, dpi=96)
+        self.CalculateGradient('gradient.png', self.panel)
+        
+        #Layout sizers       
+        box.Add(self.panel,0,wx.EXPAND)
         self.SetSizerAndFit(box)        
 
         self.Show()
@@ -141,7 +146,7 @@ class MainWindow(wx.Frame):
          # Produce output
         plt.savefig(output, dpi=96)
    
-    def CalculateGradient(self, output):
+    def CalculateGradient(self, output, panel):
         def gauss2d(x, y, x0, y0, sx, sy):
             return np.outer( np.exp( -(((y-y0)/float(sy))**2)/2), np.exp( -(((x-x0)/float(sx))**2)/2) )
         
@@ -167,10 +172,12 @@ class MainWindow(wx.Frame):
         dat = np.array([red, green, blue]).swapaxes(2, 0)
 
         plt.plot(  y, x, blue)
+        panel.display(dat, x=ox, y=oy,
+                  subtitles={'red':'Red Image', 'green': 'Green Blob', 'blue': 'other'})
 
          # Produce output
         plt.savefig(output, dpi=96)
 
 app = wx.App(False)
-frame = MainWindow(None, "Sample editor")
+frame = MainWindow(None, "Sample Display")
 app.MainLoop()
