@@ -10,3 +10,5 @@
 * test env with  `ipython --pylab`
 * install optional if you want to use ready made components `pip install wxmplot`
 * Run `python myApp.py`
+
+When all goes well you see an image in the window and three png files are generated showing mathematical image processing samples.

@@ -7,8 +7,12 @@ from wxmplot import ImagePanel
 
 class MainWindow(wx.Frame):
     def __init__(self, parent, title):
-        wx.Frame.__init__(self, parent, title=title, size=(200,100))        
-        self.CreateStatusBar() # A Statusbar in the bottom of the window
+        wx.Frame.__init__(self, parent, title=title, size=(200,100))
+        # Add a panel so it looks correct on all platforms
+        self.panel = wx.Panel(self, wx.ID_ANY)
+        
+        # A Statusbar in the bottom of the window
+        self.CreateStatusBar()
 
         # Setting up the menu.
         filemenu= wx.Menu()
@@ -19,22 +23,22 @@ class MainWindow(wx.Frame):
         menuExit = filemenu.Append(wx.ID_EXIT,"E&xit"," Terminate the program") 
         menuOpen = filemenu.Append(wx.ID_OPEN, "&Open"," Open a file to edit") 
      
-        # Set events.
+        # Set menu events.
         self.Bind(wx.EVT_MENU, self.OnAbout, menuAbout)
         self.Bind(wx.EVT_MENU, self.OnExit, menuExit)     
         self.Bind(wx.EVT_MENU, self.OnOpen, menuOpen)
 
-        # operational buttons
+        # bessel buttons
         self.sizerHbar = wx.BoxSizer(wx.HORIZONTAL)
         self.buttons = []
-        bb = wx.Button(self, -1, "Draw Bessel")
+        bb = wx.Button(self.panel, -1, "Draw Bessel")
         bb.Bind(wx.EVT_BUTTON, self.DisplayBessel)
         self.buttons.append(bb)        
         self.sizerHbar.Add(self.buttons[0], 1, wx.EXPAND)
         
         # image import
         self.MaxImageSize = 460
-        self.Image = wx.StaticBitmap(self, bitmap=wx.Bitmap(self.MaxImageSize, self.MaxImageSize))
+        self.Image = wx.StaticBitmap(self.panel, bitmap=wx.Bitmap(self.MaxImageSize, self.MaxImageSize))
         self.ImageFile = 'plot.png'
 
         # calculate bessel
@@ -45,30 +49,34 @@ class MainWindow(wx.Frame):
         # calculate contour
         self.CalculateContour('contour.png')       
 
-        # Use some sizers to see layout options
-        box = wx.BoxSizer(wx.VERTICAL)
-        box.Add(bb, 0, wx.CENTER | wx.ALL,10)
+        # Use sizers to see layout options
+        topBox = wx.BoxSizer(wx.VERTICAL)
 
         # adding stretchable space before and after centers the image.
-        box.Add((1,1),1)
-        box.Add(self.Image, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL | wx.ADJUST_MINSIZE, 10)
-        box.Add((1,1),1)
-        box.Add(self.sizerHbar, 0, wx.EXPAND)
+        topBox.Add((1,1),1)
+        topBox.Add(self.Image, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALL | wx.ADJUST_MINSIZE, 10)
+        topBox.Add((1,1),1)
+        topBox.Add(self.sizerHbar, 0, wx.EXPAND)
 
         # calculate gradient
-        self.panel = ImagePanel(self, dpi=96)
-        self.CalculateGradient('gradient.png', self.panel)
+        self.imgPanel = ImagePanel(self, dpi=96)
+        self.CalculateGradient('gradient.png', self.imgPanel)
+
+        self.imgSizer = wx.BoxSizer(wx.HORIZONTAL)
+        topBox.Add(self.imgSizer, 0, wx.ALL|wx.EXPAND, 5)
         
         #Layout sizers       
-        box.Add(self.panel,0,wx.EXPAND)
-        self.SetSizerAndFit(box)        
+        self.panel.SetSizer(topBox)
+        topBox.Fit(self)       
 
         self.Show()
 
         # Creating the menubar.
         menuBar = wx.MenuBar()
-        menuBar.Append(filemenu,"&File") # Adding the "filemenu" to the MenuBar
-        self.SetMenuBar(menuBar)  # Adding the MenuBar to the Frame content.
+        # Adding the "filemenu" to the MenuBar
+        menuBar.Append(filemenu,"&File")
+        # Adding the MenuBar to the Frame content.
+        self.SetMenuBar(menuBar)
         self.Show(True)
 
     def OnAbout(self,e):
@@ -105,7 +113,7 @@ class MainWindow(wx.Frame):
         else:
             NewH = self.MaxImageSize
             NewW = self.MaxImageSize * W / H
-        Img = Img.Scale(NewW,NewH)
+        Img = Img.Scale(round(NewW),NewH)
  
         # convert it to a wx.Bitmap, and put it on the wx.StaticBitmap
         self.Image.SetBitmap(wx.Bitmap(Img))
@@ -178,6 +186,8 @@ class MainWindow(wx.Frame):
          # Produce output
         plt.savefig(output, dpi=96)
 
-app = wx.App(False)
-frame = MainWindow(None, "Sample Display")
-app.MainLoop()
+if __name__ == '__main__':
+    app = wx.App(False)
+    frame =  MainWindow(None, "Sample Display")
+    app.MainLoop()
+
